@@ -1,0 +1,201 @@
+<div class="parcel-list-container">
+  <!-- Search and Filters Section -->
+  <div class="filters-section">
+    <h2>Find Your Perfect Property</h2>
+    
+    <div class="search-bar">
+      <input 
+        type="text" 
+        [(ngModel)]="filters.search" 
+        placeholder="Search by location, parcel ID, or landmark..."
+        (keyup.enter)="applyFilters()"
+        class="search-input"
+      />
+      <button (click)="applyFilters()" class="btn btn-primary">Search</button>
+    </div>
+    
+    <div class="filters-grid">
+      <div class="filter-group">
+        <label>Property Type</label>
+        <select [(ngModel)]="filters.property_type" (change)="applyFilters()">
+          <option value="">All Types</option>
+          <option *ngFor="let type of propertyTypes" [value]="type">{{type}}</option>
+        </select>
+      </div>
+      
+      <div class="filter-group">
+        <label>Listing Type</label>
+        <select [(ngModel)]="filters.listing_type" (change)="applyFilters()">
+          <option value="">All</option>
+          <option *ngFor="let type of listingTypes" [value]="type">{{type}}</option>
+        </select>
+      </div>
+      
+      <div class="filter-group">
+        <label>Sub-City</label>
+        <select [(ngModel)]="filters.sub_city" (change)="applyFilters()">
+          <option value="">All Locations</option>
+          <option *ngFor="let city of subCities" [value]="city">{{city}}</option>
+        </select>
+      </div>
+      
+      <div class="filter-group">
+        <label>Min Price (ETB)</label>
+        <input type="number" [(ngModel)]="filters.min_price" placeholder="Min" />
+      </div>
+      
+      <div class="filter-group">
+        <label>Max Price (ETB)</label>
+        <input type="number" [(ngModel)]="filters.max_price" placeholder="Max" />
+      </div>
+      
+      <div class="filter-group">
+        <label>Min Area (m²)</label>
+        <input type="number" [(ngModel)]="filters.min_area" placeholder="Min" />
+      </div>
+      
+      <div class="filter-group">
+        <label>Max Area (m²)</label>
+        <input type="number" [(ngModel)]="filters.max_area" placeholder="Max" />
+      </div>
+      
+      <div class="filter-group">
+        <label>Sort By</label>
+        <select [(ngModel)]="filters.ordering" (change)="applyFilters()">
+          <option *ngFor="let option of sortOptions" [value]="option.value">
+            {{option.label}}
+          </option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="infrastructure-filters">
+      <label class="checkbox-label">
+        <input type="checkbox" [(ngModel)]="filters.has_electricity" (change)="applyFilters()" />
+        Electricity
+      </label>
+      <label class="checkbox-label">
+        <input type="checkbox" [(ngModel)]="filters.has_water" (change)="applyFilters()" />
+        Water
+      </label>
+      <label class="checkbox-label">
+        <input type="checkbox" [(ngModel)]="filters.has_sewage" (change)="applyFilters()" />
+        Sewage
+      </label>
+    </div>
+    
+    <div class="filter-actions">
+      <button (click)="applyFilters()" class="btn btn-primary">Apply Filters</button>
+      <button (click)="resetFilters()" class="btn btn-secondary">Reset</button>
+    </div>
+  </div>
+  
+  <!-- Results Section -->
+  <div class="results-section">
+    <div class="results-header">
+      <div class="results-info">
+        <h3>{{parcels.length}} Properties Found</h3>
+      </div>
+      <div class="view-controls">
+        <button (click)="toggleViewMode()" class="btn btn-icon">
+          {{viewMode === 'grid' ? '☰ List' : '⊞ Grid'}}
+        </button>
+      </div>
+    </div>
+    
+    <!-- Comparison Bar -->
+    <div *ngIf="comparisonList.length > 0" class="comparison-bar">
+      <span>{{comparisonList.length}} properties selected for comparison</span>
+      <button (click)="compareSelected()" class="btn btn-primary" [disabled]="comparisonList.length < 2">
+        Compare Now
+      </button>
+    </div>
+    
+    <!-- Loading State -->
+    <div *ngIf="loading" class="loading">
+      <p>Loading properties...</p>
+    </div>
+    
+    <!-- Error State -->
+    <div *ngIf="error" class="error">
+      <p>{{error}}</p>
+    </div>
+    
+    <!-- Grid View -->
+    <div *ngIf="!loading && !error && viewMode === 'grid'" class="parcels-grid">
+      <div *ngFor="let parcel of parcels" class="parcel-card" [class.featured]="parcel.is_featured">
+        <div class="parcel-image" (click)="viewDetails(parcel.id)">
+          <img [src]="parcel.primary_image || 'assets/placeholder.jpg'" [alt]="parcel.title" />
+          <span *ngIf="parcel.is_featured" class="featured-badge">Featured</span>
+          <span class="property-type-badge">{{parcel.property_type}}</span>
+        </div>
+        
+        <div class="parcel-content">
+          <h3 (click)="viewDetails(parcel.id)">{{parcel.title || parcel.parcel_id}}</h3>
+          <p class="location">📍 {{parcel.sub_city}}, {{parcel.landmark}}</p>
+          
+          <div class="parcel-details">
+            <span class="detail-item">📏 {{formatArea(parcel.area_sqm)}}</span>
+            <span class="detail-item">💰 {{formatPrice(parcel.sale_price)}}</span>
+          </div>
+          
+          <div class="infrastructure-icons">
+            <span *ngIf="parcel.has_electricity" title="Electricity">⚡</span>
+            <span *ngIf="parcel.has_water" title="Water">💧</span>
+            <span *ngIf="parcel.has_sewage" title="Sewage">🚰</span>
+          </div>
+          
+          <div class="parcel-actions">
+            <button (click)="viewDetails(parcel.id)" class="btn btn-primary">View Details</button>
+            <button 
+              (click)="toggleComparison(parcel.id)" 
+              class="btn btn-secondary"
+              [class.active]="isInComparison(parcel.id)"
+            >
+              {{isInComparison(parcel.id) ? '✓ Added' : '+ Compare'}}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- List View -->
+    <div *ngIf="!loading && !error && viewMode === 'list'" class="parcels-list">
+      <div *ngFor="let parcel of parcels" class="parcel-list-item" [class.featured]="parcel.is_featured">
+        <div class="list-image" (click)="viewDetails(parcel.id)">
+          <img [src]="parcel.primary_image || 'assets/placeholder.jpg'" [alt]="parcel.title" />
+        </div>
+        
+        <div class="list-content">
+          <h3 (click)="viewDetails(parcel.id)">{{parcel.title || parcel.parcel_id}}</h3>
+          <p class="location">📍 {{parcel.sub_city}}, {{parcel.wereda}}, {{parcel.landmark}}</p>
+          <p class="description">{{parcel.description?.substring(0, 150)}}...</p>
+          
+          <div class="list-details">
+            <span>Type: {{parcel.property_type}}</span>
+            <span>Area: {{formatArea(parcel.area_sqm)}}</span>
+            <span>Price: {{formatPrice(parcel.sale_price)}}</span>
+            <span *ngIf="parcel.price_per_sqm">Per m²: {{formatPrice(parcel.price_per_sqm)}}</span>
+          </div>
+        </div>
+        
+        <div class="list-actions">
+          <button (click)="viewDetails(parcel.id)" class="btn btn-primary">View Details</button>
+          <button 
+            (click)="toggleComparison(parcel.id)" 
+            class="btn btn-secondary"
+            [class.active]="isInComparison(parcel.id)"
+          >
+            {{isInComparison(parcel.id) ? '✓' : '+'}}
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Empty State -->
+    <div *ngIf="!loading && !error && parcels.length === 0" class="empty-state">
+      <p>No properties found matching your criteria.</p>
+      <button (click)="resetFilters()" class="btn btn-primary">Clear Filters</button>
+    </div>
+  </div>
+</div>

@@ -140,9 +140,59 @@
             <label><i class="fas fa-id-card"></i> Identification</label>
             <div class="info-grid">
               <div class="info-item">
+                <label>Title</label>
+                <p>{{ selectedParcel.title || selectedParcel.parcel_id }}</p>
+              </div>
+              <div class="info-item">
                 <label>Deed Reference</label>
                 <p>{{ selectedParcel.title_deed_ref || 'N/A' }}</p>
               </div>
+              <div class="info-item">
+                <label>Status</label>
+                <p><span class="status-badge" [class]="selectedParcel.status?.toLowerCase()">{{ selectedParcel.status }}</span></p>
+              </div>
+            </div>
+            <div class="info-full" *ngIf="selectedParcel.description">
+              <label>Description</label>
+              <p>{{ selectedParcel.description }}</p>
+            </div>
+          </div>
+
+          <!-- 2. Pricing Information -->
+          <div class="drawer-section" *ngIf="selectedParcel.sale_price || selectedParcel.lease_price_monthly">
+            <label><i class="fas fa-money-bill-wave"></i> Pricing</label>
+            <div class="info-grid">
+              <div class="info-item" *ngIf="selectedParcel.sale_price">
+                <label>Sale Price</label>
+                <p class="price-highlight">{{ selectedParcel.sale_price | number }} {{ selectedParcel.currency }}</p>
+              </div>
+              <div class="info-item" *ngIf="selectedParcel.lease_price_monthly">
+                <label>Monthly Lease</label>
+                <p class="price-highlight">{{ selectedParcel.lease_price_monthly | number }} {{ selectedParcel.currency }}</p>
+              </div>
+              <div class="info-item" *ngIf="selectedParcel.price_per_sqm">
+                <label>Price per m²</label>
+                <p>{{ selectedParcel.price_per_sqm | number }} {{ selectedParcel.currency }}</p>
+              </div>
+              <div class="info-item">
+                <label>Listing Type</label>
+                <p>{{ selectedParcel.listing_type }}</p>
+              </div>
+              <div class="info-item">
+                <label>Negotiable</label>
+                <p>{{ selectedParcel.is_negotiable ? 'Yes' : 'No' }}</p>
+              </div>
+              <div class="info-item">
+                <label>Views</label>
+                <p>{{ selectedParcel.views_count || 0 }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. Property Details -->
+          <div class="drawer-section">
+            <label><i class="fas fa-ruler-combined"></i> Property Details</label>
+            <div class="info-grid">
               <div class="info-item">
                 <label>Dimensions</label>
                 <p>{{ selectedParcel.dimensions || 'N/A' }}</p>
@@ -154,7 +204,7 @@
             </div>
           </div>
 
-          <!-- 2. Administrative Info -->
+          <!-- 4. Administrative Info -->
           <div class="drawer-section">
             <label><i class="fas fa-map-marker-alt"></i> Administrative Info</label>
             <div class="info-grid">
@@ -177,7 +227,7 @@
             </div>
           </div>
 
-          <!-- 3. Infrastructure & Access -->
+          <!-- 5. Infrastructure & Access -->
           <div class="drawer-section">
             <label><i class="fas fa-plug"></i> Infrastructure & Access</label>
             <div class="utility-row">
@@ -196,32 +246,71 @@
             </div>
           </div>
 
-          <!-- 4. Legal & Ownership -->
-          <div class="drawer-section">
-            <label><i class="fas fa-gavel"></i> Legal & Ownership</label>
+          <!-- 6. Owner Contact -->
+          <div class="drawer-section" *ngIf="selectedParcel.owner_name">
+            <label><i class="fas fa-user"></i> Owner Contact</label>
             <div class="info-grid">
               <div class="info-item">
                 <label>Owner Name</label>
                 <p>{{ selectedParcel.owner_name }}</p>
+              </div>
+              <div class="info-item" *ngIf="selectedParcel.owner_phone">
+                <label>Phone</label>
+                <p><a href="tel:{{ selectedParcel.owner_phone }}">{{ selectedParcel.owner_phone }}</a></p>
+              </div>
+              <div class="info-item" *ngIf="selectedParcel.owner_email">
+                <label>Email</label>
+                <p><a href="mailto:{{ selectedParcel.owner_email }}">{{ selectedParcel.owner_email }}</a></p>
               </div>
               <div class="info-item">
                 <label>Last Survey</label>
                 <p>{{ selectedParcel.survey_date }}</p>
               </div>
             </div>
-            <div class="info-full">
+            <div class="info-full" *ngIf="selectedParcel.usage_restrictions">
               <label>Usage Restrictions</label>
-              <p>{{ selectedParcel.usage_restrictions || 'None' }}</p>
+              <p>{{ selectedParcel.usage_restrictions }}</p>
+            </div>
+          </div>
+
+          <!-- 7. Nearby Amenities -->
+          <div class="drawer-section" *ngIf="selectedParcel.amenities && selectedParcel.amenities.length > 0">
+            <label><i class="fas fa-map-signs"></i> Nearby Amenities</label>
+            <div class="amenities-list">
+              <div class="amenity-item" *ngFor="let amenity of selectedParcel.amenities">
+                <span class="amenity-icon">{{ getAmenityIcon(amenity.amenity_type) }}</span>
+                <div class="amenity-info">
+                  <strong>{{ amenity.name }}</strong>
+                  <span class="amenity-distance">{{ amenity.distance_km }} km</span>
+                </div>
+              </div>
             </div>
           </div>
 
           <div class="action-bar">
-            <button class="btn btn-primary" (click)="generateFullReport()">
+            <button class="btn btn-primary" (click)="contactOwner()">
+              <i class="fas fa-envelope"></i> Contact Owner
+            </button>
+            <button 
+              class="btn" 
+              [class.btn-success]="isInComparison(selectedParcel.id)"
+              [class.btn-outline]="!isInComparison(selectedParcel.id)"
+              (click)="toggleComparisonAndKeepOpen(selectedParcel.id)">
+              <i class="fas" [class.fa-check]="isInComparison(selectedParcel.id)" [class.fa-plus]="!isInComparison(selectedParcel.id)"></i>
+              {{ isInComparison(selectedParcel.id) ? '✓ Added' : 'Add to Compare' }}
+            </button>
+            <button class="btn btn-outline" (click)="generateFullReport()">
               <i class="fas fa-file-pdf"></i> Full Report
             </button>
             <button class="btn btn-outline" (click)="goToEntrance()">
               <i class="fas fa-map-pin"></i> Go to Entrance
             </button>
+          </div>
+          
+          <!-- Comparison Helper Message -->
+          <div class="comparison-helper" *ngIf="showComparisonPanel && comparisonList.length < 4">
+            <i class="fas fa-info-circle"></i>
+            <span>Click another parcel on the map to add more properties ({{ comparisonList.length }}/4)</span>
           </div>
         </div>
       </ng-container>
@@ -236,3 +325,226 @@
 </div>
 
 <router-outlet></router-outlet>
+
+  <!-- Floating Comparison Panel -->
+  <div class="comparison-panel" *ngIf="showComparisonPanel" [@slideUp]>
+    <div class="comparison-header">
+      <div class="comparison-title">
+        <i class="fas fa-balance-scale"></i>
+        <span>Compare Properties ({{ comparisonList.length }}/4)</span>
+      </div>
+      <button class="btn-close-panel" (click)="clearComparison()" title="Clear all">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    
+    <div class="comparison-items">
+      <div class="comparison-item" *ngFor="let parcel of getComparisonParcels()">
+        <button class="btn-remove-item" (click)="removeFromComparison(parcel.id)" title="Remove">
+          <i class="fas fa-times"></i>
+        </button>
+        <div class="item-content">
+          <strong>{{ parcel.parcel_id }}</strong>
+          <span class="item-location">{{ parcel.sub_city }}</span>
+          <span class="item-price" *ngIf="parcel.sale_price">
+            {{ (parcel.sale_price / 1000000).toFixed(1) }}M ETB
+          </span>
+        </div>
+      </div>
+      
+      <!-- Add More Hint -->
+      <div class="comparison-item add-more-hint" *ngIf="comparisonList.length < 4">
+        <i class="fas fa-plus-circle"></i>
+        <span>Click parcels on map to add</span>
+      </div>
+    </div>
+    
+    <div class="comparison-actions">
+      <button 
+        class="btn btn-primary btn-compare" 
+        (click)="compareSelected()"
+        [disabled]="comparisonList.length < 2">
+        <i class="fas fa-chart-bar"></i>
+        Compare Now ({{ comparisonList.length }})
+      </button>
+    </div>
+  </div>
+
+  <!-- Comparison Modal -->
+  <div class="comparison-modal" *ngIf="showComparisonModal" (click)="closeComparisonModal()">
+    <div class="comparison-modal-content" (click)="$event.stopPropagation()">
+      <div class="comparison-modal-header">
+        <h2><i class="fas fa-balance-scale"></i> Property Comparison</h2>
+        <div class="modal-actions">
+          <button class="btn btn-outline" (click)="printComparison()">
+            <i class="fas fa-print"></i> Print
+          </button>
+          <button class="btn-close-modal" (click)="closeComparisonModal()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="comparison-modal-body" *ngIf="!loadingComparison">
+        <!-- Property Cards -->
+        <div class="comparison-cards">
+          <div class="comparison-card" *ngFor="let parcel of comparisonData">
+            <div class="card-image">
+              <img [src]="parcel.primary_image || 'assets/placeholder.jpg'" [alt]="parcel.title" />
+              <span class="card-badge">{{ parcel.property_type }}</span>
+            </div>
+            <div class="card-content">
+              <h3>{{ parcel.parcel_id }}</h3>
+              <p class="card-location">{{ parcel.sub_city }}, {{ parcel.landmark }}</p>
+              <p class="card-price" *ngIf="parcel.sale_price">
+                {{ (parcel.sale_price / 1000000).toFixed(2) }}M ETB
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Comparison Table -->
+        <div class="comparison-table-container">
+          <table class="comparison-table-modal">
+            <thead>
+              <tr>
+                <th>Feature</th>
+                <th *ngFor="let parcel of comparisonData">{{ parcel.parcel_id }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Pricing -->
+              <tr class="category-header">
+                <td colspan="100%"><strong>Pricing</strong></td>
+              </tr>
+              <tr>
+                <td>Sale Price</td>
+                <td *ngFor="let parcel of comparisonData">
+                  {{ formatComparisonValue(parcel.sale_price, 'currency') }}
+                </td>
+              </tr>
+              <tr>
+                <td>Monthly Lease</td>
+                <td *ngFor="let parcel of comparisonData">
+                  {{ formatComparisonValue(parcel.lease_price_monthly, 'currency') }}
+                </td>
+              </tr>
+              <tr>
+                <td>Price per m²</td>
+                <td *ngFor="let parcel of comparisonData">
+                  {{ formatComparisonValue(parcel.price_per_sqm, 'currency') }}
+                </td>
+              </tr>
+              <tr>
+                <td>Negotiable</td>
+                <td *ngFor="let parcel of comparisonData">
+                  {{ formatComparisonValue(parcel.is_negotiable, 'boolean') }}
+                </td>
+              </tr>
+
+              <!-- Property Details -->
+              <tr class="category-header">
+                <td colspan="100%"><strong>Property Details</strong></td>
+              </tr>
+              <tr>
+                <td>Area</td>
+                <td *ngFor="let parcel of comparisonData">
+                  {{ formatComparisonValue(parcel.area_sqm, 'area') }}
+                </td>
+              </tr>
+              <tr>
+                <td>Dimensions</td>
+                <td *ngFor="let parcel of comparisonData">
+                  {{ parcel.dimensions || 'N/A' }}
+                </td>
+              </tr>
+              <tr>
+                <td>Zoning</td>
+                <td *ngFor="let parcel of comparisonData">
+                  {{ parcel.zoning_info || 'N/A' }}
+                </td>
+              </tr>
+              <tr>
+                <td>Status</td>
+                <td *ngFor="let parcel of comparisonData">
+                  <span class="status-badge" [class]="parcel.status?.toLowerCase()">
+                    {{ parcel.status }}
+                  </span>
+                </td>
+              </tr>
+
+              <!-- Location -->
+              <tr class="category-header">
+                <td colspan="100%"><strong>Location</strong></td>
+              </tr>
+              <tr>
+                <td>Sub-City</td>
+                <td *ngFor="let parcel of comparisonData">{{ parcel.sub_city }}</td>
+              </tr>
+              <tr>
+                <td>Wereda</td>
+                <td *ngFor="let parcel of comparisonData">{{ parcel.wereda }}</td>
+              </tr>
+              <tr>
+                <td>Street</td>
+                <td *ngFor="let parcel of comparisonData">{{ parcel.street_name || 'N/A' }}</td>
+              </tr>
+              <tr>
+                <td>Landmark</td>
+                <td *ngFor="let parcel of comparisonData">{{ parcel.landmark || 'N/A' }}</td>
+              </tr>
+
+              <!-- Infrastructure -->
+              <tr class="category-header">
+                <td colspan="100%"><strong>Infrastructure</strong></td>
+              </tr>
+              <tr>
+                <td>Electricity</td>
+                <td *ngFor="let parcel of comparisonData">
+                  {{ formatComparisonValue(parcel.has_electricity, 'boolean') }}
+                </td>
+              </tr>
+              <tr>
+                <td>Water</td>
+                <td *ngFor="let parcel of comparisonData">
+                  {{ formatComparisonValue(parcel.has_water, 'boolean') }}
+                </td>
+              </tr>
+              <tr>
+                <td>Sewage</td>
+                <td *ngFor="let parcel of comparisonData">
+                  {{ formatComparisonValue(parcel.has_sewage, 'boolean') }}
+                </td>
+              </tr>
+              <tr>
+                <td>Road Access</td>
+                <td *ngFor="let parcel of comparisonData">{{ parcel.road_access || 'N/A' }}</td>
+              </tr>
+
+              <!-- Owner Info -->
+              <tr class="category-header">
+                <td colspan="100%"><strong>Owner Information</strong></td>
+              </tr>
+              <tr>
+                <td>Owner</td>
+                <td *ngFor="let parcel of comparisonData">{{ parcel.owner_name || 'N/A' }}</td>
+              </tr>
+              <tr>
+                <td>Phone</td>
+                <td *ngFor="let parcel of comparisonData">{{ parcel.owner_phone || 'N/A' }}</td>
+              </tr>
+              <tr>
+                <td>Views</td>
+                <td *ngFor="let parcel of comparisonData">{{ parcel.views_count || 0 }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="comparison-modal-loading" *ngIf="loadingComparison">
+        <div class="spinner"></div>
+        <p>Loading comparison data...</p>
+      </div>
+    </div>
+  </div>

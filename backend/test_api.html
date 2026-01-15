@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EthioProps API Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .section h2 {
+            color: #007bff;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .filter-group {
+            margin: 10px 0;
+        }
+        .filter-group label {
+            display: inline-block;
+            width: 150px;
+            font-weight: bold;
+        }
+        .filter-group input, .filter-group select {
+            padding: 5px;
+            width: 200px;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>🏘️ EthioProps API Testing Dashboard</h1>
+    
+    <div class="section">
+        <h2>📊 Statistics & Analytics</h2>
+        <button onclick="getStatistics()">Get Price Statistics</button>
+        <pre id="statistics-result">Click button to load statistics...</pre>
+    </div>
+    
+    <div class="section">
+        <h2>🔍 Search & Filter Parcels</h2>
+        <div class="filter-group">
+            <label>Property Type:</label>
+            <select id="property-type">
+                <option value="">All</option>
+                <option value="RESIDENTIAL">Residential</option>
+                <option value="COMMERCIAL">Commercial</option>
+                <option value="INDUSTRIAL">Industrial</option>
+                <option value="AGRICULTURAL">Agricultural</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Sub-City:</label>
+            <select id="sub-city">
+                <option value="">All</option>
+                <option value="Bole">Bole</option>
+                <option value="Kirkos">Kirkos</option>
+                <option value="Yeka">Yeka</option>
+                <option value="Arada">Arada</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Min Price (ETB):</label>
+            <input type="number" id="min-price" placeholder="e.g., 5000000">
+        </div>
+        <div class="filter-group">
+            <label>Max Price (ETB):</label>
+            <input type="number" id="max-price" placeholder="e.g., 100000000">
+        </div>
+        <div class="filter-group">
+            <label>Has Electricity:</label>
+            <input type="checkbox" id="has-electricity">
+        </div>
+        <button onclick="searchParcels()">Search Parcels</button>
+        <pre id="search-result">Configure filters and click search...</pre>
+    </div>
+    
+    <div class="section">
+        <h2>🏠 Parcel Details</h2>
+        <div class="filter-group">
+            <label>Parcel ID:</label>
+            <input type="number" id="parcel-id" value="20" placeholder="Enter parcel ID">
+        </div>
+        <button onclick="getParcelDetails()">Get Details</button>
+        <button onclick="getAmenities()">Get Nearby Amenities</button>
+        <pre id="details-result">Enter a parcel ID and click button...</pre>
+    </div>
+    
+    <div class="section">
+        <h2>📏 Distance Calculator</h2>
+        <div class="filter-group">
+            <label>Parcel ID:</label>
+            <input type="number" id="distance-parcel-id" value="20">
+        </div>
+        <div class="filter-group">
+            <label>Target Latitude:</label>
+            <input type="number" step="0.000001" id="target-lat" value="9.0128" placeholder="e.g., 9.0128">
+        </div>
+        <div class="filter-group">
+            <label>Target Longitude:</label>
+            <input type="number" step="0.000001" id="target-lng" value="38.7500" placeholder="e.g., 38.7500">
+        </div>
+        <button onclick="calculateDistance()">Calculate Distance</button>
+        <pre id="distance-result">Enter coordinates and click calculate...</pre>
+    </div>
+    
+    <div class="section">
+        <h2>⚖️ Compare Parcels</h2>
+        <div class="filter-group">
+            <label>Parcel IDs (comma-separated):</label>
+            <input type="text" id="compare-ids" value="20,21,22" placeholder="e.g., 20,21,22">
+        </div>
+        <button onclick="compareParcels()">Compare Parcels</button>
+        <pre id="compare-result">Enter 2-3 parcel IDs and click compare...</pre>
+    </div>
+    
+    <div class="section">
+        <h2>📧 Submit Inquiry</h2>
+        <div class="filter-group">
+            <label>Parcel ID:</label>
+            <input type="number" id="inquiry-parcel-id" value="20">
+        </div>
+        <div class="filter-group">
+            <label>Your Name:</label>
+            <input type="text" id="inquiry-name" placeholder="John Doe">
+        </div>
+        <div class="filter-group">
+            <label>Email:</label>
+            <input type="email" id="inquiry-email" placeholder="john@example.com">
+        </div>
+        <div class="filter-group">
+            <label>Phone:</label>
+            <input type="text" id="inquiry-phone" placeholder="+251-912345678">
+        </div>
+        <div class="filter-group">
+            <label>Message:</label>
+            <textarea id="inquiry-message" rows="3" style="width: 400px;" placeholder="I'm interested in this property..."></textarea>
+        </div>
+        <button onclick="submitInquiry()">Submit Inquiry</button>
+        <pre id="inquiry-result">Fill in the form and click submit...</pre>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000/api';
+
+        async function getStatistics() {
+            try {
+                const response = await fetch(`${API_BASE}/parcels/statistics/`);
+                const data = await response.json();
+                document.getElementById('statistics-result').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('statistics-result').textContent = 'Error: ' + error.message;
+            }
+        }
+
+        async function searchParcels() {
+            const params = new URLSearchParams();
+            
+            const propertyType = document.getElementById('property-type').value;
+            const subCity = document.getElementById('sub-city').value;
+            const minPrice = document.getElementById('min-price').value;
+            const maxPrice = document.getElementById('max-price').value;
+            const hasElectricity = document.getElementById('has-electricity').checked;
+            
+            if (propertyType) params.append('property_type', propertyType);
+            if (subCity) params.append('sub_city', subCity);
+            if (minPrice) params.append('min_price', minPrice);
+            if (maxPrice) params.append('max_price', maxPrice);
+            if (hasElectricity) params.append('has_electricity', 'true');
+            
+            try {
+                const response = await fetch(`${API_BASE}/parcels/?${params}`);
+                const data = await response.json();
+                document.getElementById('search-result').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('search-result').textContent = 'Error: ' + error.message;
+            }
+        }
+
+        async function getParcelDetails() {
+            const id = document.getElementById('parcel-id').value;
+            try {
+                const response = await fetch(`${API_BASE}/parcels/${id}/`);
+                const data = await response.json();
+                document.getElementById('details-result').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('details-result').textContent = 'Error: ' + error.message;
+            }
+        }
+
+        async function getAmenities() {
+            const id = document.getElementById('parcel-id').value;
+            try {
+                const response = await fetch(`${API_BASE}/nearby-amenities/?parcel_id=${id}`);
+                const data = await response.json();
+                document.getElementById('details-result').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('details-result').textContent = 'Error: ' + error.message;
+            }
+        }
+
+        async function calculateDistance() {
+            const parcelId = document.getElementById('distance-parcel-id').value;
+            const lat = document.getElementById('target-lat').value;
+            const lng = document.getElementById('target-lng').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/parcels/${parcelId}/calculate_distance/?lat=${lat}&lng=${lng}`);
+                const data = await response.json();
+                document.getElementById('distance-result').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('distance-result').textContent = 'Error: ' + error.message;
+            }
+        }
+
+        async function compareParcels() {
+            const ids = document.getElementById('compare-ids').value.split(',').map(id => parseInt(id.trim()));
+            
+            try {
+                const response = await fetch(`${API_BASE}/parcels/compare/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ parcel_ids: ids })
+                });
+                const data = await response.json();
+                document.getElementById('compare-result').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('compare-result').textContent = 'Error: ' + error.message;
+            }
+        }
+
+        async function submitInquiry() {
+            const inquiry = {
+                parcel: parseInt(document.getElementById('inquiry-parcel-id').value),
+                name: document.getElementById('inquiry-name').value,
+                email: document.getElementById('inquiry-email').value,
+                phone: document.getElementById('inquiry-phone').value,
+                message: document.getElementById('inquiry-message').value,
+                inquiry_type: 'INFO'
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE}/inquiries/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(inquiry)
+                });
+                const data = await response.json();
+                document.getElementById('inquiry-result').innerHTML = '<span class="success">✓ Inquiry submitted successfully!</span>\n\n' + JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('inquiry-result').innerHTML = '<span class="error">✗ Error: ' + error.message + '</span>';
+            }
+        }
+    </script>
+</body>
+</html>

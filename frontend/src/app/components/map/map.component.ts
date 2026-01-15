@@ -109,8 +109,9 @@ export class MapComponent implements AfterViewInit, OnDestroy, OnChanges {
 
   private loadParcels(): void {
     this.parcelService.getParcels().subscribe({
-      next: (parcels) => {
-        parcels.forEach((parcel) => {
+      next: (response: any) => {
+        const parcels = response.results || response;
+        parcels.forEach((parcel: Parcel) => {
           if (parcel.geometry) {
             this.addParcelToMap(parcel);
           }
@@ -131,13 +132,38 @@ export class MapComponent implements AfterViewInit, OnDestroy, OnChanges {
         fillOpacity: 0.1,
       },
       onEachFeature: (feature, layer) => {
-        layer.bindPopup(`
-          <div class="parcel-popup">
-            <strong>Parcel ID:</strong> ${parcel.parcel_id}<br>
-            <strong>Zoning:</strong> ${parcel.zoning_info}<br>
-            <strong>Owner:</strong> ${parcel.owner_name}
-          </div>
-        `);
+        // Build popup content with available data
+        let popupContent = `<div class="parcel-popup" style="min-width: 200px;">`;
+        popupContent += `<strong style="font-size: 14px; color: #007a33;">${parcel.parcel_id}</strong><br>`;
+        
+        if (parcel.title) {
+          popupContent += `<div style="margin: 5px 0; font-size: 12px;">${parcel.title}</div>`;
+        }
+        
+        if (parcel.property_type) {
+          popupContent += `<span style="background: #e8f5e9; padding: 2px 8px; border-radius: 3px; font-size: 11px; display: inline-block; margin: 3px 0;">${parcel.property_type}</span><br>`;
+        }
+        
+        if (parcel.sub_city) {
+          popupContent += `<div style="margin-top: 5px; font-size: 12px;">📍 ${parcel.sub_city}`;
+          if (parcel.landmark) {
+            popupContent += ` - ${parcel.landmark}`;
+          }
+          popupContent += `</div>`;
+        }
+        
+        if (parcel.area_sqm) {
+          popupContent += `<div style="font-size: 12px; margin-top: 3px;">📏 ${parcel.area_sqm.toLocaleString()} m²</div>`;
+        }
+        
+        if (parcel.sale_price) {
+          popupContent += `<div style="font-size: 12px; margin-top: 3px; color: #1976d2; font-weight: bold;">💰 ${parcel.sale_price.toLocaleString()} ETB</div>`;
+        }
+        
+        popupContent += `<div style="margin-top: 8px; padding-top: 5px; border-top: 1px solid #e0e0e0; font-size: 11px; color: #666;">Click for full details</div>`;
+        popupContent += `</div>`;
+        
+        layer.bindPopup(popupContent);
 
         layer.on('mouseover', () => {
           (layer as any).setStyle({ fillOpacity: 0.3, weight: 3 });
@@ -152,6 +178,32 @@ export class MapComponent implements AfterViewInit, OnDestroy, OnChanges {
         });
       }
     }).addTo(this.parcelLayer);
+  }
+
+  // Public method to center map on coordinates
+  public centerOnLocation(lat: number, lng: number, zoom: number = 18): void {
+    if (this.map) {
+      this.map.setView([lat, lng], zoom);
+      
+      // Add a temporary marker at the location
+      const marker = L.marker([lat, lng], {
+        icon: L.icon({
+          iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+          shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+          iconSize: [25, 41],
+          iconAnchor: [12, 41],
+          popupAnchor: [1, -34],
+          shadowSize: [41, 41]
+        })
+      }).addTo(this.map);
+      
+      marker.bindPopup('<strong>Entrance Location</strong>').openPopup();
+      
+      // Remove marker after 5 seconds
+      setTimeout(() => {
+        marker.remove();
+      }, 5000);
+    }
   }
 
   ngOnDestroy(): void {

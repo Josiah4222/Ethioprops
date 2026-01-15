@@ -1,0 +1,182 @@
+<div class="comparison-container">
+  <!-- Header -->
+  <div class="comparison-header no-print">
+    <div class="header-left">
+      <button class="btn-back" (click)="backToSearch()">
+        <i class="fas fa-arrow-left"></i> Back to Search
+      </button>
+      <h1>Property Comparison</h1>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-outline" (click)="shareComparison()">
+        <i class="fas fa-share-alt"></i> Share
+      </button>
+      <button class="btn btn-primary" (click)="exportToPDF()">
+        <i class="fas fa-file-pdf"></i> Export to PDF
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading properties for comparison...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="error-state">
+    <i class="fas fa-exclamation-circle"></i>
+    <p>{{ error }}</p>
+    <button class="btn btn-primary" (click)="backToSearch()">Back to Search</button>
+  </div>
+
+  <!-- Comparison Table -->
+  <div *ngIf="!loading && !error && parcels.length > 0" class="comparison-content">
+    
+    <!-- Print Header (only visible when printing) -->
+    <div class="print-only print-header">
+      <h1>EthioProps - Property Comparison Report</h1>
+      <p>Generated on {{ getCurrentDate() | date:'medium' }}</p>
+    </div>
+
+    <!-- Property Cards Summary -->
+    <div class="properties-summary">
+      <div class="property-card" *ngFor="let parcel of parcels; let i = index">
+        <button class="remove-btn no-print" (click)="removeParcel(i)" title="Remove from comparison">
+          <i class="fas fa-times"></i>
+        </button>
+        
+        <div class="property-image">
+          <img [src]="parcel.primary_image || 'assets/placeholder.jpg'" [alt]="parcel.title" />
+          <span class="property-type-badge">{{ parcel.property_type }}</span>
+        </div>
+        
+        <div class="property-info">
+          <h3>{{ parcel.title || parcel.parcel_id }}</h3>
+          <p class="location">
+            <i class="fas fa-map-marker-alt"></i>
+            {{ parcel.sub_city }}, {{ parcel.landmark }}
+          </p>
+          <div class="price" *ngIf="parcel.sale_price">
+            <strong>{{ formatCurrency(parcel.sale_price) }}</strong>
+          </div>
+          <button class="btn btn-sm btn-outline no-print" (click)="viewDetails(parcel.id)">
+            View Full Details
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Comparison Table -->
+    <div class="comparison-table-wrapper">
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th class="category-header">Features</th>
+            <th *ngFor="let parcel of parcels">
+              {{ parcel.parcel_id }}
+            </th>
+          </tr>
+        </thead>
+        
+        <tbody>
+          <!-- Loop through categories -->
+          <ng-container *ngFor="let category of comparisonCategories">
+            <tr class="category-row">
+              <td colspan="100%" class="category-title">
+                <strong>{{ category.name }}</strong>
+              </td>
+            </tr>
+            
+            <!-- Loop through fields in category -->
+            <tr *ngFor="let field of category.fields" class="data-row">
+              <td class="field-label">{{ field.label }}</td>
+              <td *ngFor="let parcel of parcels; let i = index" 
+                  [class.best-value]="isBestValue(i, field)"
+                  [class.has-value]="getFieldValue(parcel, field.key)">
+                
+                <!-- Badge type -->
+                <span *ngIf="field.type === 'badge'" 
+                      class="badge" 
+                      [class]="getFieldValue(parcel, field.key)?.toLowerCase()">
+                  {{ getFieldValue(parcel, field.key) }}
+                </span>
+                
+                <!-- Boolean type with icons -->
+                <span *ngIf="field.type === 'boolean'" 
+                      [class.text-success]="getFieldValue(parcel, field.key)"
+                      [class.text-muted]="!getFieldValue(parcel, field.key)">
+                  {{ formatValue(getFieldValue(parcel, field.key), field.type) }}
+                </span>
+                
+                <!-- Other types -->
+                <span *ngIf="field.type !== 'badge' && field.type !== 'boolean'">
+                  {{ formatValue(getFieldValue(parcel, field.key), field.type) }}
+                  <i *ngIf="isBestValue(i, field)" class="fas fa-star best-icon" title="Best value"></i>
+                </span>
+              </td>
+            </tr>
+          </ng-container>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Nearby Amenities Comparison -->
+    <div class="amenities-comparison" *ngIf="hasAmenities()">
+      <h2>Nearby Amenities Comparison</h2>
+      <div class="amenities-grid">
+        <div class="amenity-column" *ngFor="let parcel of parcels">
+          <h3>{{ parcel.parcel_id }}</h3>
+          <div class="amenity-list">
+            <div class="amenity-item" *ngFor="let amenity of parcel.amenities">
+              <span class="amenity-icon">{{ getAmenityIcon(amenity.amenity_type) }}</span>
+              <div class="amenity-details">
+                <strong>{{ amenity.name }}</strong>
+                <span class="distance">{{ amenity.distance_km }} km</span>
+              </div>
+            </div>
+            <p *ngIf="!parcel.amenities || parcel.amenities.length === 0" class="no-data">
+              No amenities data available
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary Section -->
+    <div class="comparison-summary">
+      <h2>Comparison Summary</h2>
+      <div class="summary-cards">
+        <div class="summary-card" *ngIf="getLowestPriceParcel() as lowestPrice">
+          <h3>Lowest Price</h3>
+          <p class="highlight">{{ lowestPrice.parcel_id }}</p>
+          <span>{{ formatCurrency(lowestPrice.sale_price!) }}</span>
+        </div>
+        
+        <div class="summary-card" *ngIf="getLargestAreaParcel() as largestArea">
+          <h3>Largest Area</h3>
+          <p class="highlight">{{ largestArea.parcel_id }}</p>
+          <span>{{ largestArea.area_sqm?.toLocaleString() }} m²</span>
+        </div>
+        
+        <div class="summary-card" *ngIf="getBestPricePerSqmParcel() as bestPrice">
+          <h3>Best Price/m²</h3>
+          <p class="highlight">{{ bestPrice.parcel_id }}</p>
+          <span>{{ formatCurrency(bestPrice.price_per_sqm!) }}/m²</span>
+        </div>
+        
+        <div class="summary-card" *ngIf="getMostViewedParcel() as mostViewed">
+          <h3>Most Viewed</h3>
+          <p class="highlight">{{ mostViewed.parcel_id }}</p>
+          <span>{{ mostViewed.views_count?.toLocaleString() }} views</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Print Footer -->
+    <div class="print-only print-footer">
+      <p>This comparison was generated from EthioProps - Property Management System</p>
+      <p>For more information, visit our website or contact us.</p>
+    </div>
+  </div>
+</div>
