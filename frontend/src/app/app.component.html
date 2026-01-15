@@ -1,0 +1,238 @@
+<div class="app-container">
+  <!-- Brand Explorer Sidebar -->
+  <aside class="explorer">
+    <div class="explorer-header">
+      <div class="logo">
+        <i class="fas fa-landmark"></i>
+        <span>Ethio<span>Props</span></span>
+      </div>
+      <div class="tibeb-accent"></div>
+    </div>
+
+    <div class="explorer-search">
+      <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input 
+          type="text" 
+          placeholder="Search parcels, zoning, or sub-city..."
+          [(ngModel)]="searchQuery"
+          (input)="onSearch()"
+          (keyup.enter)="onSearch()">
+      </div>
+      
+      <!-- Search Results Dropdown -->
+      <div class="search-results" *ngIf="showSearchResults">
+        <div class="search-results-header">
+          <span>{{ filteredParcels.length }} results found</span>
+          <button class="close-search" (click)="closeSearchResults()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="search-results-list">
+          <div 
+            *ngFor="let parcel of filteredParcels" 
+            class="search-result-item"
+            (click)="selectSearchResult(parcel)">
+            <div class="result-main">
+              <strong>{{ parcel.parcel_id }}</strong>
+              <span class="result-type">{{ parcel.property_type }}</span>
+            </div>
+            <div class="result-details">
+              <i class="fas fa-map-marker-alt"></i>
+              {{ parcel.sub_city }} - {{ parcel.street_name || parcel.landmark }}
+            </div>
+          </div>
+          <div *ngIf="filteredParcels.length === 0" class="no-results">
+            <i class="fas fa-search"></i>
+            <p>No parcels found matching "{{ searchQuery }}"</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="explorer-menu">
+      <div class="menu-section">
+        <label>Property Layers</label>
+        <button 
+          [class.active]="zoningLayerActive"
+          (click)="toggleZoningLayer()">
+          <i class="fas fa-layer-group"></i> Zoning & Land use
+        </button>
+        <button 
+          [class.active]="parcelBoundariesActive"
+          (click)="toggleParcelBoundaries()">
+          <i class="fas fa-vector-square"></i> Parcel Boundaries
+        </button>
+      </div>
+
+      <div class="menu-section">
+        <label>Analysis Tools</label>
+        <button (click)="showDevelopmentStats()">
+          <i class="fas fa-chart-pie"></i> Development Stats
+        </button>
+        <button (click)="startAreaMeasurement()">
+          <i class="fas fa-ruler-combined"></i> Area Measurement
+        </button>
+      </div>
+    </nav>
+  </aside>
+
+  <!-- Main Viewport -->
+  <main class="viewport">
+    <header class="view-header">
+      <div class="location-trail">
+        <span>Addis Ababa</span>
+        <i class="fas fa-chevron-right"></i>
+        <span class="active">{{ getCurrentLocation() }}</span>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-outline" (click)="shareView()">
+          <i class="fas fa-share-alt"></i> Share View
+        </button>
+        <button class="btn btn-primary" (click)="createNewProject()">
+          <i class="fas fa-plus"></i> New Project
+        </button>
+      </div>
+    </header>
+
+    <div class="map-container">
+      <app-map 
+        [mapStyle]="mapStyle"
+        (parcelSelected)="onParcelSelected($event)">
+      </app-map>
+
+      <!-- Floating Map Styles (Now small and distinct) -->
+      <div class="map-style-toggle">
+        <button 
+          [class.active]="mapStyle === 'map'"
+          (click)="setMapStyle('map')">
+          Map
+        </button>
+        <button 
+          [class.active]="mapStyle === 'satellite'"
+          (click)="setMapStyle('satellite')">
+          Satellite
+        </button>
+        <button 
+          [class.active]="mapStyle === 'hybrid'"
+          (click)="setMapStyle('hybrid')">
+          Hybrid
+        </button>
+      </div>
+    </div>
+
+    <!-- Result Details (Shown when a parcel is picked) -->
+    <div class="property-drawer" [class.collapsed]="!selectedParcel">
+      <div class="drawer-handle" (click)="clearSelection()"></div>
+
+      <ng-container *ngIf="selectedParcel">
+        <div class="drawer-header">
+          <div class="title-group">
+            <h3>{{ selectedParcel.parcel_id }}</h3>
+            <span class="property-pill">{{ selectedParcel.property_type }}</span>
+          </div>
+          <button class="close-btn" (click)="clearSelection()"><i class="fas fa-times"></i></button>
+        </div>
+
+        <div class="drawer-body">
+          <!-- 1. Location & Identification -->
+          <div class="drawer-section">
+            <label><i class="fas fa-id-card"></i> Identification</label>
+            <div class="info-grid">
+              <div class="info-item">
+                <label>Deed Reference</label>
+                <p>{{ selectedParcel.title_deed_ref || 'N/A' }}</p>
+              </div>
+              <div class="info-item">
+                <label>Dimensions</label>
+                <p>{{ selectedParcel.dimensions || 'N/A' }}</p>
+              </div>
+              <div class="info-item">
+                <label>Area</label>
+                <p>{{ selectedParcel.area_sqm | number }} m²</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. Administrative Info -->
+          <div class="drawer-section">
+            <label><i class="fas fa-map-marker-alt"></i> Administrative Info</label>
+            <div class="info-grid">
+              <div class="info-item">
+                <label>Sub-City / Wereda</label>
+                <p>{{ selectedParcel.sub_city }} / {{ selectedParcel.wereda }}</p>
+              </div>
+              <div class="info-item">
+                <label>Street / House No.</label>
+                <p>{{ selectedParcel.street_name || '-' }} / {{ selectedParcel.house_number || '-' }}</p>
+              </div>
+              <div class="info-item">
+                <label>Landmark</label>
+                <p>{{ selectedParcel.landmark || 'N/A' }}</p>
+              </div>
+            </div>
+            <div class="info-full">
+              <label>Zoning Info</label>
+              <p>{{ selectedParcel.zoning_info }}</p>
+            </div>
+          </div>
+
+          <!-- 3. Infrastructure & Access -->
+          <div class="drawer-section">
+            <label><i class="fas fa-plug"></i> Infrastructure & Access</label>
+            <div class="utility-row">
+              <div class="utility" [class.active]="selectedParcel.has_electricity">
+                <i class="fas fa-bolt"></i> Electricity
+              </div>
+              <div class="utility" [class.active]="selectedParcel.has_water">
+                <i class="fas fa-faucet"></i> Water
+              </div>
+              <div class="utility" [class.active]="selectedParcel.has_sewage">
+                <i class="fas fa-tint-slash"></i> Sewage
+              </div>
+              <div class="utility road">
+                <i class="fas fa-road"></i> {{ selectedParcel.road_access }}
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. Legal & Ownership -->
+          <div class="drawer-section">
+            <label><i class="fas fa-gavel"></i> Legal & Ownership</label>
+            <div class="info-grid">
+              <div class="info-item">
+                <label>Owner Name</label>
+                <p>{{ selectedParcel.owner_name }}</p>
+              </div>
+              <div class="info-item">
+                <label>Last Survey</label>
+                <p>{{ selectedParcel.survey_date }}</p>
+              </div>
+            </div>
+            <div class="info-full">
+              <label>Usage Restrictions</label>
+              <p>{{ selectedParcel.usage_restrictions || 'None' }}</p>
+            </div>
+          </div>
+
+          <div class="action-bar">
+            <button class="btn btn-primary" (click)="generateFullReport()">
+              <i class="fas fa-file-pdf"></i> Full Report
+            </button>
+            <button class="btn btn-outline" (click)="goToEntrance()">
+              <i class="fas fa-map-pin"></i> Go to Entrance
+            </button>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- Placeholder when nothing is selected -->
+      <div class="placeholder-content" *ngIf="!selectedParcel">
+        <i class="fas fa-mouse-pointer"></i>
+        <p>Select a parcel to view details</p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<router-outlet></router-outlet>
